@@ -4,8 +4,8 @@ import QtQuick.Layouts 1.15
 
 ApplicationWindow {
     id: root
-    width: 800
-    height: 600
+    minimumWidth: 800
+    minimumHeight: 600
     visible: true
 
     property string currentFilter: "All"
@@ -36,7 +36,7 @@ ApplicationWindow {
 
         property alias titleText: titleField.text
         property alias completedState: completedCheckbox.checked
-        property alias priorityValue: priorityDropdown.currentText
+        property alias priorityValue: priorityDropdown.priorityColor
         property alias dateValue: datePicker.text
 
         font.pixelSize: 16 * root.scale
@@ -61,9 +61,15 @@ ApplicationWindow {
             ComboBox {
                 id: priorityDropdown
                 Layout.fillWidth: true
-                model: ["red", "yellow", "green", "blue"]
+                model: ["Low", "Medium", "High"]
                 currentIndex: 0
                 font.pixelSize: 16 * root.scale
+
+                property string priorityColor: {
+                    if (currentText === "Low") return "green"
+                    else if (currentText === "Medium") return "orange"
+                    return "red"
+                }
             }
 
             TextField {
@@ -75,13 +81,13 @@ ApplicationWindow {
         }
 
         onAccepted: {
-            if (titleText.trim().length === 0) return
+            if (titleText.trim() === "" || dateValue.trim() === "") return
 
             taskModel.append({
-                title: titleText,
+                title: titleText.trim(),
                 completed: completedState,
                 priorityColor: priorityValue,
-                dueDate: dateValue
+                dueDate: dateValue.trim()
             })
 
             titleField.text = ""
@@ -129,14 +135,14 @@ ApplicationWindow {
         }
 
         ListView {
+            id: lView
             Layout.fillWidth: true
             Layout.fillHeight: true
-            clip: true
             model: taskModel
 
             delegate: Item {
                 visible: filtered(index)
-                width: ListView.view.width
+                width: lView.width
 
                 RowLayout {
                     id: row
