@@ -74,7 +74,7 @@ ApplicationWindow {
 
             TextField {
                 id: datePicker
-                placeholderText: "Due date (DD-MM-YYYY)"
+                placeholderText: "Due date"
                 Layout.fillWidth: true
                 font.pixelSize: 16 * root.scale
             }
@@ -94,6 +94,70 @@ ApplicationWindow {
             datePicker.text = ""
         }
     }
+
+    Dialog {
+        id: editTaskDialog
+        modal: true
+        title: "Edit Task"
+        standardButtons: Dialog.Ok | Dialog.Cancel
+
+        property int editIndex: -1
+        property alias newTitleText: newTitleField.text
+        property alias newCompletedState: newCompletedCheckbox.checked
+        property alias newPriorityValue: newPriorityDropdown.priorityColor
+        property alias newDateValue: newDatePicker.text
+
+        font.pixelSize: 16 * root.scale
+
+        ColumnLayout {
+            spacing: 10
+            width: parent.width
+
+            TextField {
+                id: newTitleField
+                placeholderText: "Task title"
+                Layout.fillWidth: true
+                font.pixelSize: 16 * root.scale
+            }
+
+            CheckBox {
+                id: newCompletedCheckbox
+                text: "Completed"
+                font.pixelSize: 16 * root.scale
+            }
+
+            ComboBox {
+                id: newPriorityDropdown
+                Layout.fillWidth: true
+                model: ["Low", "Medium", "High"]
+                currentIndex: 0
+                font.pixelSize: 16 * root.scale
+
+                property string priorityColor: {
+                    if (currentText === "Low") return "green"
+                    else if (currentText === "Medium") return "orange"
+                    return "red"
+                }
+            }
+
+            TextField {
+                id: newDatePicker
+                placeholderText: "Due date"
+                Layout.fillWidth: true
+                font.pixelSize: 16 * root.scale
+            }
+        }
+
+        onAccepted: {
+            if (newTitleText.trim() === "" || newDateValue.trim() === "") return
+
+            taskModel.setProperty(editIndex, "title", newTitleText)
+            taskModel.setProperty(editIndex, "completed", newCompletedState)
+            taskModel.setProperty(editIndex, "priorityColor", newPriorityValue)
+            taskModel.setProperty(editIndex, "dueDate", newDateValue)
+        }
+    }
+
 
     ColumnLayout {
         anchors.fill: parent
@@ -167,14 +231,16 @@ ApplicationWindow {
                         text: title
                         Layout.fillWidth: true
                         elide: Text.ElideRight
-                        color: "light blue"
+                        color: priorityColor
+                        font.strikeout: completed
                         font.pixelSize: 16 * root.scale
                     }
 
                     Text {
                         text: dueDate
-                        color: "light blue"
+                        color: priorityColor
                         horizontalAlignment: Text.AlignRight
+                        font.strikeout: completed
                         font.pixelSize: 16 * root.scale
                     }
 
@@ -182,6 +248,20 @@ ApplicationWindow {
                         text: "Delete"
                         font.pixelSize: 14 * root.scale
                         onClicked: taskModel.remove(index)
+                    }
+
+                    Button {
+                        text: "Modify"
+                        font.pixelSize: 14 * root.scale
+                        onClicked: {
+                            editTaskDialog.editIndex = index
+                            editTaskDialog.newTitleText = title
+                            editTaskDialog.newCompletedState = completed
+                            editTaskDialog.newDateValue = dueDate
+
+
+                            editTaskDialog.open()
+                        }
                     }
                 }
 
