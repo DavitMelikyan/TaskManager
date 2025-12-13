@@ -4,14 +4,16 @@ import QtQuick.Layouts 1.15
 
 ApplicationWindow {
     id: root
-    minimumWidth: 800
-    minimumHeight: 600
     visible: true
-
-    property string currentFilter: "All"
-    property real scale: width / 800
+    width: 900
+    height: 600
+    minimumWidth: 400
+    minimumHeight: 400
+    title: "Task Manager"
 
     ListModel { id: taskModel }
+
+    property string currentFilter: "All"
 
     function filtered(index) {
         if (currentFilter === "All") return true
@@ -20,252 +22,283 @@ ApplicationWindow {
         return false
     }
 
-    function totalCount() { return taskModel.count }
-    function completedCount() {
-        var c = 0
-        for (var i = 0; i < taskModel.count; ++i) if (taskModel.get(i).completed) ++c
-        return c
-    }
-    function remainingCount() { return totalCount() - completedCount() }
-
-    Dialog {
-        id: addTaskDialog
-        modal: true
-        title: "Create New Task"
-        standardButtons: Dialog.Ok | Dialog.Cancel
-
-        property alias titleText: titleField.text
-        property alias completedState: completedCheckbox.checked
-        property alias priorityValue: priorityDropdown.priorityColor
-        property alias dateValue: datePicker.text
-
-        font.pixelSize: 16 * root.scale
-
-        contentItem: ColumnLayout {
-            spacing: 10
-            width: parent.width
-
-            TextField {
-                id: titleField
-                placeholderText: "Task title"
-                Layout.fillWidth: true
-                font.pixelSize: 16 * root.scale
-            }
-
-            CheckBox {
-                id: completedCheckbox
-                text: "Completed"
-                font.pixelSize: 16 * root.scale
-            }
-
-            ComboBox {
-                id: priorityDropdown
-                Layout.fillWidth: true
-                model: ["Low", "Medium", "High"]
-                currentIndex: 0
-                font.pixelSize: 16 * root.scale
-
-                property string priorityColor: {
-                    if (currentText === "Low") return "green"
-                    else if (currentText === "Medium") return "orange"
-                    return "red"
-                }
-            }
-
-            TextField {
-                id: datePicker
-                placeholderText: "Due date"
-                Layout.fillWidth: true
-                font.pixelSize: 16 * root.scale
-            }
-        }
-
-        onAccepted: {
-            if (titleText.trim() === "" || dateValue.trim() === "") return
-
-            taskModel.append({
-                title: titleText.trim(),
-                completed: completedState,
-                priorityColor: priorityValue,
-                dueDate: dateValue.trim()
-            })
-
-            titleField.text = ""
-            datePicker.text = ""
-        }
-    }
-
-    Dialog {
-        id: editTaskDialog
-        modal: true
-        title: "Edit Task"
-        standardButtons: Dialog.Ok | Dialog.Cancel
-
-        property int editIndex: -1
-        property alias newTitleText: newTitleField.text
-        property alias newCompletedState: newCompletedCheckbox.checked
-        property alias newPriorityValue: newPriorityDropdown.priorityColor
-        property alias newDateValue: newDatePicker.text
-
-        font.pixelSize: 16 * root.scale
-
-        ColumnLayout {
-            spacing: 10
-            width: parent.width
-
-            TextField {
-                id: newTitleField
-                placeholderText: "Task title"
-                Layout.fillWidth: true
-                font.pixelSize: 16 * root.scale
-            }
-
-            CheckBox {
-                id: newCompletedCheckbox
-                text: "Completed"
-                font.pixelSize: 16 * root.scale
-            }
-
-            ComboBox {
-                id: newPriorityDropdown
-                Layout.fillWidth: true
-                model: ["Low", "Medium", "High"]
-                currentIndex: 0
-                font.pixelSize: 16 * root.scale
-
-                property string priorityColor: {
-                    if (currentText === "Low") return "green"
-                    else if (currentText === "Medium") return "orange"
-                    return "red"
-                }
-            }
-
-            TextField {
-                id: newDatePicker
-                placeholderText: "Due date"
-                Layout.fillWidth: true
-                font.pixelSize: 16 * root.scale
-            }
-        }
-
-        onAccepted: {
-            if (newTitleText.trim() === "" || newDateValue.trim() === "") return
-
-            taskModel.setProperty(editIndex, "title", newTitleText)
-            taskModel.setProperty(editIndex, "completed", newCompletedState)
-            taskModel.setProperty(editIndex, "priorityColor", newPriorityValue)
-            taskModel.setProperty(editIndex, "dueDate", newDateValue)
-        }
-    }
-
-
-    ColumnLayout {
+    StackView {
+        id: stack
         anchors.fill: parent
-        spacing: 10
+        initialItem: mainPage
+    }
 
-        RowLayout {
-            spacing: 10
-            Layout.fillWidth: true
+    Component {
+        id: mainPage
 
-            Button {
-                text: "All"
-                onClicked: currentFilter = "All"
-                font.pixelSize: 16 * root.scale
-            }
-            Button {
-                text: "Active"
-                onClicked: currentFilter = "Active"
-                font.pixelSize: 16 * root.scale
-            }
-            Button {
-                text: "Completed"
-                onClicked: currentFilter = "Completed"
-                font.pixelSize: 16 * root.scale
-            }
-
-            Button {
-                text: "Add Task"
-                onClicked: addTaskDialog.open()
-                font.pixelSize: 16 * root.scale
-            }
-
-            Label {
-                Layout.fillWidth: true
-                horizontalAlignment: Text.AlignRight
-                text: `Total: ${totalCount()} | Completed: ${completedCount()} | Remaining: ${remainingCount()}`
-                color: "dark green"
-                font.pixelSize: 16 * root.scale
-            }
-        }
-
-        ListView {
-            id: lView
-            Layout.fillWidth: true
-            Layout.fillHeight: true
-            model: taskModel
-
-            delegate: Item {
-                visible: filtered(index)
-                width: lView.width
+        Page {
+            ColumnLayout {
+                anchors.fill: parent
+                anchors.margins: 10
+                spacing: 10
 
                 RowLayout {
-                    id: row
                     Layout.fillWidth: true
-                    anchors.margins: 10
                     spacing: 10
 
-                    CheckBox {
-                        checked: completed
-                        onCheckedChanged: taskModel.setProperty(index, "completed", checked)
-                        font.pixelSize: 16 * root.scale
-                    }
-
-                    Rectangle {
-                        width: 12 * root.scale
-                        height: 12 * root.scale
-                        color: priorityColor
-                        radius: 2
-                    }
-
-                    Text {
-                        text: title
+                    Button {
+                        text: "All"
+                        onClicked: currentFilter = "All"
                         Layout.fillWidth: true
-                        elide: Text.ElideRight
-                        color: priorityColor
-                        font.strikeout: completed
-                        font.pixelSize: 16 * root.scale
+                    }
+                    Button {
+                        text: "Active"
+                        onClicked: currentFilter = "Active"
+                        Layout.fillWidth: true
+                    }
+                    Button {
+                        text: "Completed"
+                        onClicked: currentFilter = "Completed"
+                        Layout.fillWidth: true
                     }
 
-                    Text {
-                        text: dueDate
-                        color: priorityColor
-                        horizontalAlignment: Text.AlignRight
-                        font.strikeout: completed
-                        font.pixelSize: 16 * root.scale
-                    }
+                    Item { Layout.fillWidth: true }
 
                     Button {
-                        text: "Delete"
-                        font.pixelSize: 14 * root.scale
-                        onClicked: taskModel.remove(index)
+                        text: "Add Task"
+                        onClicked: stack.push(taskFormPage)
+                        Layout.fillWidth: true
                     }
-
-                    Button {
-                        text: "Modify"
-                        font.pixelSize: 14 * root.scale
-                        onClicked: {
-                            editTaskDialog.editIndex = index
-                            editTaskDialog.newTitleText = title
-                            editTaskDialog.newCompletedState = completed
-                            editTaskDialog.newDateValue = dueDate
+                }
 
 
-                            editTaskDialog.open()
+                ListView {
+                    id: lView
+                    Layout.fillWidth: true
+                    Layout.fillHeight: true
+                    model: taskModel
+                    clip: true
+
+                    delegate: Item {
+                        width: parent.width
+                        height: row.implicitHeight + 16
+                        visible: filtered(index)
+
+                        RowLayout {
+                            id: row
+                            anchors.fill: parent
+                            anchors.margins: 8
+                            spacing: 10
+
+                            CheckBox {
+                                checked: completed
+                                onToggled: taskModel.setProperty(index, "completed", checked)
+                            }
+
+                            Rectangle {
+                                width: 12
+                                height: 12
+                                radius: 2
+                                color: priorityColor
+                                Layout.alignment: Qt.AlignVCenter
+                            }
+
+                            ColumnLayout {
+                                Layout.fillWidth: true
+                                spacing: 4
+
+                                Text {
+                                    text: title
+                                    font.bold: true
+                                    font.strikeout: completed
+                                    color: priorityColor
+                                    elide: Text.ElideRight
+                                    Layout.fillWidth: true
+                                }
+
+                                Text {
+                                    text: description ? description : ""
+                                    color: priorityColor
+                                    elide: Text.ElideRight
+                                    maximumLineCount: 1
+                                    Layout.fillWidth: true
+                                }
+                            }
+
+                            ColumnLayout {
+                                spacing: 4
+                                Layout.alignment: Qt.AlignRight
+                                Layout.minimumWidth: 120
+
+                                Text {
+                                    text: dueDate
+                                    font.pixelSize: 12
+                                    color: priorityColor
+                                    horizontalAlignment: Text.AlignRight
+                                    Layout.fillWidth: true
+                                }
+
+                                RowLayout {
+                                    spacing: 6
+                                    Layout.fillWidth: true
+                                    Layout.alignment: Qt.AlignRight
+
+                                    Button {
+                                        text: "Edit"
+                                        onClicked: stack.push(taskFormPage, {
+                                            editMode: true,
+                                            editIndex: index
+                                        })
+                                        Layout.preferredWidth: 60
+                                    }
+
+                                    Button {
+                                        text: "Delete"
+                                        onClicked: taskModel.remove(index)
+                                        Layout.preferredWidth: 70
+                                    }
+                                }
+                            }
                         }
                     }
                 }
+            }
+        }
+    }
 
-                implicitHeight: row.implicitHeight + 20
+    Component {
+        id: taskFormPage
+
+        Page {
+            property bool editMode: false
+            property int editIndex: -1
+
+            property string titleError: ""
+            property string descError: ""
+            property string dateError: ""
+
+            property bool validForm:
+                titleError === "" &&
+                descError === "" &&
+                dateError === "" &&
+                titleField.text.length >= 3
+
+            ColumnLayout {
+                anchors.fill: parent
+                anchors.margins: 20
+                spacing: 12
+
+                Label {
+                    text: editMode ? "Edit Task" : "New Task"
+                    font.pixelSize: 20
+                }
+
+                TextField {
+                    id: titleField
+                    placeholderText: "Title (min 3 chars)"
+                    Layout.fillWidth: true
+
+                    onTextChanged: {
+                        titleError = text.length < 3 ? "Title must be at least 3 characters" : ""
+                    }
+                }
+
+                Label {
+                    text: titleError
+                    color: "red"
+                    visible: titleError !== ""
+                }
+
+                TextArea {
+                    id: descField
+                    placeholderText: "Description (max 500 chars)"
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: 120
+                    wrapMode: Text.Wrap
+
+                    onTextChanged: {
+                        descError = text.length > 500 ? "Description max 500 characters" : ""
+                    }
+                }
+
+                Label {
+                    text: descError
+                    color: "red"
+                    visible: descError !== ""
+                }
+
+                ComboBox {
+                    id: priorityDropdown
+                    Layout.fillWidth: true
+                    model: ["Low", "Medium", "High"]
+                }
+
+                TextField {
+                    id: dateField
+                    placeholderText: "YYYY-MM-DD"
+                    Layout.fillWidth: true
+
+                    onTextChanged: {
+                        var r = /^\d{4}-\d{2}-\d{2}$/
+                        dateError = r.test(text) ? "" : "Date must be YYYY-MM-DD"
+                    }
+                }
+
+                Label {
+                    text: dateError
+                    color: "red"
+                    visible: dateError !== ""
+                }
+
+                RowLayout {
+                    Layout.alignment: Qt.AlignRight
+                    spacing: 10
+
+                    Button {
+                        text: "Cancel"
+                        onClicked: stack.pop()
+                    }
+
+                    Button {
+                        text: "Save"
+                        enabled: validForm
+
+                        onClicked: {
+                            var color =
+                                priorityDropdown.currentText === "Low" ? "green" :
+                                priorityDropdown.currentText === "Medium" ? "orange" :
+                                "red"
+
+                            if (editMode) {
+                                taskModel.set(editIndex, {
+                                    title: titleField.text,
+                                    description: descField.text,
+                                    completed: taskModel.get(editIndex).completed,
+                                    priorityColor: color,
+                                    dueDate: dateField.text
+                                })
+                            } else {
+                                taskModel.append({
+                                    title: titleField.text,
+                                    description: descField.text,
+                                    completed: false,
+                                    priorityColor: color,
+                                    dueDate: dateField.text
+                                })
+                            }
+
+                            stack.pop()
+                        }
+                    }
+                }
+            }
+
+            Component.onCompleted: {
+                if (editMode) {
+                    var item = taskModel.get(editIndex)
+                    titleField.text = item.title
+                    descField.text = item.description
+                    dateField.text = item.dueDate
+
+                    if (item.priorityColor === "green") priorityDropdown.currentIndex = 0
+                    else if (item.priorityColor === "orange") priorityDropdown.currentIndex = 1
+                    else priorityDropdown.currentIndex = 2
+                }
             }
         }
     }
